@@ -21,12 +21,14 @@ from models.data_load import Net2DataFlow
 from hparams.hparam import hparam as hp
 from models.models import Net2
 
+
 def remove_all_files(path):
     files = glob.glob('{}/*'.format(path))
     for f in files:
         os.remove(f)
 
-def train(args,logdir2):
+
+def train(args, logdir2):
     # models
     model = Net2()
 

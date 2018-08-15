@@ -42,6 +42,7 @@ class FilterGradientVariables(GradientProcessor):
             logger.warn("No gradient w.r.t these trainable variables: {}".format(message))
         return g
 
+
 class Net2(ModelDesc):
 
     def _get_inputs(self):

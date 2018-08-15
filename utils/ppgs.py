@@ -81,7 +81,7 @@ def check_ppgs():
             wav = librosa.load(basepath + "/" + name + ".wav", sr=None)
             if len(wav[0]) < min:
                 min = len(wav[0])
-            print((len(wav[0])+80) // 480 == len(ppgs),len(wav[0]) / 480,(len(wav[0])+80) // 480, len(ppgs))
+            print((len(wav[0]) + 80) // 480 == len(ppgs), len(wav[0]) / 480, (len(wav[0]) + 80) // 480, len(ppgs))
             # 到达400点算一个ppg
     print(min)
 
