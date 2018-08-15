@@ -1,11 +1,11 @@
 ---
 default:
     sr: 16000
-    frame_shift: 0.005
-    frame_length:  0.025
+    frame_shift: 0.030 #0.005
+    frame_length:  0.060 #0.025
     win_length: 960
     hop_length: 480
-    n_fft: 1024
+    n_fft: 1440
     preemphasis: 0.97
     n_mfcc: 40
     n_iter: 60 # Number of inversion iterations
@@ -27,25 +27,6 @@ default:
 
 logdir_path: 'logdir'
 
-train1:
-    # path
-    data_path: 'datasets/timit/train/*/*/*.wav'
-
-    # models
-    hidden_units: 128  # alias: E
-    num_banks: 8
-    num_highway_blocks: 4
-    norm_type: 'ins'  # a normalizer function. value: bn, ln, ins, or None
-    t: 1.0  # temperature
-    dropout_rate: 0.2
-
-    # train
-    batch_size: 1
-    lr: 0.0003
-    num_epochs: 100
-    steps_per_epoch: 100
-    save_per_epoch: 2
-    num_gpu: 1
 ---
 train2:
     # path
@@ -73,23 +54,16 @@ train2:
     test_per_epoch: 1
     num_gpu: 1
 ---
-test1:
-    # path
-    data_path: 'datasets/timit/test/*/*/*.wav'
-
-    # test
-    batch_size: 32
----
 test2:
     # path
-    data_path: 'datasets/arctic/slt/*.wav'
+    data_path: 'datasets/S0150/S0150_mic/*.npy'
 
     # test
     batch_size: 32
 ---
 convert:
     # path
-    data_path: 'datasets/arctic/bdl/*.wav'
+    data_path: 'datasets/S0252/S0252_mic/*.npy'
 
     # convert
     one_full_wav: False

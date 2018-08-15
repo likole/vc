@@ -41,7 +41,8 @@ from tensorpack.tfutils.sessinit import ChainInit
 
 
 def convert(predictor, df):
-    pred_spec, y_spec, ppgs = predictor(next(df().get_data()))
+    nd1,nd2,nd3,nd4=next(df().get_data())
+    pred_spec, y_spec, ppgs = predictor(nd1,nd2,nd3,nd4)
 
     # Denormalizatoin
     pred_spec = denormalize_db(pred_spec, hp.default.max_db, hp.default.min_db)
@@ -74,31 +75,29 @@ def convert(predictor, df):
 
 
 def get_eval_input_names():
-    return ['x_mfccs', 'y_spec', 'y_mel']
+    return ['x_ppgs','x_mfccs', 'y_spec', 'y_mel']
 
 
 def get_eval_output_names():
     return ['pred_spec', 'y_spec', 'ppgs']
 
 
-def do_convert(args, logdir1, logdir2):
+def do_convert(args, logdir2):
     # Load graph
     model = Net2()
 
     df = Net2DataFlow(hp.convert.data_path, hp.convert.batch_size)
 
-    ckpt1 = tf.train.latest_checkpoint(logdir1)
     ckpt2 = '{}/{}'.format(logdir2, args.ckpt) if args.ckpt else tf.train.latest_checkpoint(logdir2)
     session_inits = []
     if ckpt2:
         session_inits.append(SaverRestore(ckpt2))
-    if ckpt1:
-        session_inits.append(SaverRestore(ckpt1, ignore=['global_step']))
     pred_conf = PredictConfig(
         model=model,
         input_names=get_eval_input_names(),
         output_names=get_eval_output_names(),
         session_init=ChainInit(session_inits))
+    print(get_eval_input_names())
     predictor = OfflinePredictor(pred_conf)
 
     audio, y_audio, ppgs = convert(predictor, df)
@@ -129,7 +128,6 @@ def do_convert(args, logdir1, logdir2):
 
 def get_arguments():
     parser = argparse.ArgumentParser()
-    parser.add_argument('case1', type=str, help='experiment case name of train1')
     parser.add_argument('case2', type=str, help='experiment case name of train2')
     parser.add_argument('-ckpt', help='checkpoint to load models.')
     arguments = parser.parse_args()
@@ -139,14 +137,13 @@ def get_arguments():
 if __name__ == '__main__':
     args = get_arguments()
     hp.set_hparam_yaml(args.case2)
-    logdir_train1 = '{}/{}/train1'.format(hp.logdir_path, args.case1)
     logdir_train2 = '{}/{}/train2'.format(hp.logdir_path, args.case2)
 
-    print('case1: {}, case2: {}, logdir1: {}, logdir2: {}'.format(args.case1, args.case2, logdir_train1, logdir_train2))
+    print('case2: {}, logdir2: {}'.format( args.case2, logdir_train2))
 
     s = datetime.datetime.now()
 
-    do_convert(args, logdir1=logdir_train1, logdir2=logdir_train2)
+    do_convert(args, logdir2=logdir_train2)
 
     e = datetime.datetime.now()
     diff = e - s

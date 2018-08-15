@@ -43,6 +43,11 @@ class Net2DataFlow(DataFlow):
     def get_data(self):
         while True:
             npy_file = random.choice(self.npy_files)
+            length = len(np.load(npy_file))
+            while length < ((hp.default.durdation * hp.default.sr + 80) // hp.default.hop_length):
+                npy_file = random.choice(self.npy_files)
+                length = len(np.load(npy_file))
+
             yield get_mfccs_and_spectrogram(npy_file)
 
 

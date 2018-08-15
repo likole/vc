@@ -26,7 +26,7 @@ def remove_all_files(path):
     for f in files:
         os.remove(f)
 
-def train(args, logdir1, logdir2):
+def train(args,logdir2):
     # models
     model = Net2()
 
@@ -52,7 +52,7 @@ def train(args, logdir1, logdir2):
     #     session_inits.append(SaverRestore(ckpt1, ignore=['global_step']))
     train_conf = TrainConfig(
         model=model,
-        data=QueueInput(df(n_prefetch=10, n_thread=4)),
+        data=QueueInput(df(n_prefetch=100, n_thread=4)),
         callbacks=[
             # TODO save on prefix net2
             ModelSaver(checkpoint_dir=logdir2),
@@ -73,7 +73,6 @@ def train(args, logdir1, logdir2):
 
 def get_arguments():
     parser = argparse.ArgumentParser()
-    parser.add_argument('case1', type=str, help='experiment case name of train1')
     parser.add_argument('case2', type=str, help='experiment case name of train2')
     parser.add_argument('-ckpt', help='checkpoint to load models.')
     parser.add_argument('-gpu', help='comma separated list of GPU(s) to use.')
@@ -85,14 +84,13 @@ def get_arguments():
 if __name__ == '__main__':
     args = get_arguments()
     hp.set_hparam_yaml(args.case2)
-    logdir_train1 = '{}/{}/train1'.format(hp.logdir_path, args.case1)
     logdir_train2 = '{}/{}/train2'.format(hp.logdir_path, args.case2)
 
     if args.r:
         remove_all_files(logdir_train2)
 
-    print('case1: {}, case2: {}, logdir1: {}, logdir2: {}'.format(args.case1, args.case2, logdir_train1, logdir_train2))
+    print('case2: {}, logdir2: {}'.format(args.case2, logdir_train2))
 
-    train(args, logdir1=logdir_train1, logdir2=logdir_train2)
+    train(args, logdir2=logdir_train2)
 
     print("Done")
