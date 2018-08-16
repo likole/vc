@@ -99,7 +99,7 @@ def do_convert(args, logdir2):
         input_names=get_eval_input_names(),
         output_names=get_eval_output_names(),
         session_init=ChainInit(session_inits))
-    print(get_eval_input_names())
+    # print(get_eval_input_names())
     predictor = OfflinePredictor(pred_conf)
 
     audio, y_audio, ppgs = convert(predictor, df)

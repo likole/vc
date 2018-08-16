@@ -44,7 +44,7 @@ class Net2DataFlow(DataFlow):
         while True:
             npy_file = random.choice(self.npy_files)
             length = len(np.load(npy_file))
-            while length < ((hp.default.duration * hp.default.sr) // hp.default.hop_length)+1:
+            while length < ((hp.default.duration * hp.default.sr) // hp.default.hop_length) + 1:
                 npy_file = random.choice(self.npy_files)
                 length = len(np.load(npy_file))
 
@@ -115,6 +115,7 @@ def _get_mfcc_and_spec(npy_file, wav, preemphasis_coeff, n_fft, win_length, hop_
     mag_db = normalize_0_1(mag_db, hp.default.max_db, hp.default.min_db)
     mel_db = normalize_0_1(mel_db, hp.default.max_db, hp.default.min_db)
 
-    return make_one_hot(
-        np.load(npy_file)[:((
-                                        hp.default.duration * hp.default.sr) // hp.default.hop_length + 1)]), mfccs.T, mag_db.T, mel_db.T  # (t, n_mfccs), (t, 1+n_fft/2), (t, n_mels)
+    ppgs = np.load(npy_file)
+    ppgs = ppgs[:((hp.default.duration * hp.default.sr) // hp.default.hop_length + 1)]
+
+    return make_one_hot(ppgs), mfccs.T, mag_db.T, mel_db.T  # (t, n_mfccs), (t, 1+n_fft/2), (t, n_mels)
