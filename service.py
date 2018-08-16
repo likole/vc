@@ -12,10 +12,10 @@ import numpy as np
 import soundfile as sf
 import tensorflow as tf
 
-from models.data_load import get_mfccs_and_spectrogram
+from models.data_load import get_mfccs_and_spectrogram, normalize_0_1
 from models.models import Net2
 from hparams.hparam import hparam as hp
-from utils.audio import denormalize_db, spec2wav, db2amp, inv_preemphasis
+from utils.audio import denormalize_db, spec2wav, db2amp, inv_preemphasis, preemphasis, amp2db
 
 app = Flask(__name__)
 predictor = None
@@ -37,13 +37,67 @@ def init(logdir2):
     predictor = OfflinePredictor(pred_conf)
 
 
-@app.route('/upload', methods=['POST'])
-def upload():
-    f = request.files['file']
-    basepath = os.path.dirname(__file__)
-    upload_path = os.path.join(basepath, 'uploads', str(int(time.time() * 1000)) + secure_filename(f.filename))
-    f.save(upload_path)
-    return do_service(upload_path)
+def convert(wav, ppgs):
+    """
+        转换
+        输入:wav,ppgs(将被调整为3秒)
+        输出:aduio(3秒)
+    """
+
+    # fix wav length
+    wav = librosa.util.fix_length(wav, hp.default.sr * hp.default.duration)
+
+    # Pre-emphasis
+    y_preem = preemphasis(wav, coeff=hp.default.preemphasis)
+
+    # Get spectrogram
+    D = librosa.stft(y=y_preem, n_fft=hp.default.n_fft, hop_length=hp.default.hop_length,
+                     win_length=hp.default.win_length)
+    mag = np.abs(D)
+
+    # Get mel-spectrogram
+    mel_basis = librosa.filters.mel(hp.default.sr, hp.default.n_fft, hp.default.n_mels)  # (n_mels, 1+n_fft//2)
+    mel = np.dot(mel_basis, mag)  # (n_mels, t) # mel spectrogram
+
+    # Get mfccs, amp to db
+    mag_db = amp2db(mag)
+    mel_db = amp2db(mel)
+    mfccs = np.dot(librosa.filters.dct(hp.default.n_mfcc, mel_db.shape[0]), mel_db)
+
+    # Normalization (0 ~ 1)
+    mag_db = normalize_0_1(mag_db, hp.default.max_db, hp.default.min_db)
+    mel_db = normalize_0_1(mel_db, hp.default.max_db, hp.default.min_db)
+
+    # fix ppgs length
+    ppgs = librosa.util.fix_length(ppgs, ((hp.default.duration * hp.default.sr) // hp.default.hop_length + 1))
+
+    # get_input
+    x_ppgs, x_mfccs, y_spec, y_mel = (np.arange(9999) == ppgs[:, None]).astype(np.int32), \
+                                     mfccs.T, mag_db.T, mel_db.T  # (t,9999)(t, n_mfccs), (t, 1+n_fft/2), (t, n_mels)
+    x_ppgs, x_mfccs, y_spec, y_mel = x_ppgs[np.newaxis, :], x_mfccs[np.newaxis, :], \
+                                     y_spec[np.newaxis, :], y_mel[np.newaxis, :]
+
+    # get_output
+    pred_spec, _ = predictor(x_ppgs, x_mfccs, y_spec, y_mel)
+
+    # Denormalization
+    pred_spec = denormalize_db(pred_spec, hp.default.max_db, hp.default.min_db)
+
+    # db to amp
+    pred_spec = db2amp(pred_spec)
+
+    # Emphasize the magnitude
+    pred_spec = np.power(pred_spec, hp.convert.emphasis_magnitude)
+
+    # Spectrogram to waveform
+    audio = np.array(
+        list(map(lambda spec: spec2wav(spec.T, hp.default.n_fft, hp.default.win_length, hp.default.hop_length,
+                                       hp.default.n_iter), pred_spec)))
+
+    # Apply inverse pre-emphasis
+    audio = inv_preemphasis(audio, coeff=hp.default.preemphasis)
+
+    return audio
 
 
 def do_service(wav_file):
@@ -54,6 +108,7 @@ def do_service(wav_file):
     # 调整采样率和格式
     wav, sr = librosa.load(wav_file, mono=True, sr=None)
     wav = librosa.resample(wav, sr, 16000)
+    wav_len = np.size(wav)
     sf.write(wav_file, wav, 16000, format="wav", subtype="PCM_16")
 
     # 获取ppgs
@@ -70,24 +125,23 @@ def do_service(wav_file):
         # wav=AudioSegment.from_wav(basepath + "/" + filename)
         return "接口请求失败"
 
-    # 提取参数
-    x_ppgs, x_mfccs, y_spec, y_mel = get_mfccs_and_spectrogram(basepath + "/" + filename + ".npy")
-    x_ppgs = x_ppgs[np.newaxis, :]
-    x_mfccs = x_mfccs[np.newaxis, :]
-    y_spec = y_spec[np.newaxis, :]
-    y_mel = y_mel[np.newaxis, :]
+    audio=convert(wav,ppgs)
 
-    # 转换
-    pred_spec, _ = predictor(x_ppgs, x_mfccs, y_spec, y_mel)
-    pred_spec = denormalize_db(pred_spec, hp.default.max_db, hp.default.min_db)
-    pred_spec = db2amp(pred_spec)
-    pred_spec = np.power(pred_spec, hp.convert.emphasis_magnitude)
-    audio = np.array(
-        list(map(lambda spec: spec2wav(spec.T, hp.default.n_fft, hp.default.win_length, hp.default.hop_length,
-                                       hp.default.n_iter), pred_spec)))
-    audio = inv_preemphasis(audio, coeff=hp.default.preemphasis)
-    sf.write("uploads/"+filename+"_output.wav", audio[0], 16000, format="wav", subtype="PCM_16")
-    return send_file("uploads/"+filename+"_output.wav",as_attachment=True)
+    # 修复长度
+    audio = librosa.util.fix_length(audio, wav_len)
+
+    # 写结果
+    sf.write("uploads/" + filename + "_output.wav", audio[0], 16000, format="wav", subtype="PCM_16")
+    return send_file("uploads/" + filename + "_output.wav", as_attachment=True)
+
+
+@app.route('/upload', methods=['POST'])
+def upload():
+    f = request.files['file']
+    basepath = os.path.dirname(__file__)
+    upload_path = os.path.join(basepath, 'uploads', str(int(time.time() * 1000)) + secure_filename(f.filename))
+    f.save(upload_path)
+    return do_service(upload_path)
 
 
 if __name__ == '__main__':
