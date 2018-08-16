@@ -116,6 +116,5 @@ def _get_mfcc_and_spec(npy_file, wav, preemphasis_coeff, n_fft, win_length, hop_
     mel_db = normalize_0_1(mel_db, hp.default.max_db, hp.default.min_db)
 
     ppgs = np.load(npy_file)
-    ppgs = ppgs[:((hp.default.duration * hp.default.sr) // hp.default.hop_length + 1)]
-
+    ppgs = librosa.util.fix_length(ppgs, ((hp.default.duration * hp.default.sr) // hp.default.hop_length + 1))
     return make_one_hot(ppgs), mfccs.T, mag_db.T, mel_db.T  # (t, n_mfccs), (t, 1+n_fft/2), (t, n_mels)

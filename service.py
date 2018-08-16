@@ -68,7 +68,7 @@ def do_service(wav_file):
         # print(ppgs)
     except:
         # wav=AudioSegment.from_wav(basepath + "/" + filename)
-        print("失败")
+        return "接口请求失败"
 
     # 提取参数
     x_ppgs, x_mfccs, y_spec, y_mel = get_mfccs_and_spectrogram(basepath + "/" + filename + ".npy")
@@ -86,8 +86,8 @@ def do_service(wav_file):
         list(map(lambda spec: spec2wav(spec.T, hp.default.n_fft, hp.default.win_length, hp.default.hop_length,
                                        hp.default.n_iter), pred_spec)))
     audio = inv_preemphasis(audio, coeff=hp.default.preemphasis)
-    sf.write("uploads/result.wav", audio[0], 16000, format="wav", subtype="PCM_16")
-    return send_file("uploads/result.wav",as_attachment=True)
+    sf.write("uploads/"+filename+"_output.wav", audio[0], 16000, format="wav", subtype="PCM_16")
+    return send_file("uploads/"+filename+"_output.wav",as_attachment=True)
 
 
 if __name__ == '__main__':
