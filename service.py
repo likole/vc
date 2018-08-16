@@ -1,6 +1,6 @@
 # coding:utf-8
 import json
-
+import math
 import librosa
 import requests
 import time
@@ -125,13 +125,19 @@ def do_service(wav_file):
         # wav=AudioSegment.from_wav(basepath + "/" + filename)
         return "接口请求失败"
 
-    audio=convert(wav,ppgs)
+    # 拼接结果
+    audio = []
+    for i in range(int(math.ceil(wav_len / (hp.default.duration * hp.default.sr)))):
+        print(i, i * hp.default.duration * hp.default.sr)
+        _audio = convert(wav[i * hp.default.duration * hp.default.sr:],
+                         ppgs[i * ((hp.default.duration * hp.default.sr) // hp.default.hop_length + 1):])
+        audio = audio + _audio[0].tolist()  # _audio[0]
 
     # 修复长度
-    audio = librosa.util.fix_length(audio, wav_len)
+    audio = librosa.util.fix_length(np.array(audio), wav_len)
 
     # 写结果
-    sf.write("uploads/" + filename + "_output.wav", audio[0], 16000, format="wav", subtype="PCM_16")
+    sf.write("uploads/" + filename + "_output.wav", audio, 16000, format="wav", subtype="PCM_16")
     return send_file("uploads/" + filename + "_output.wav", as_attachment=True)
 
 
