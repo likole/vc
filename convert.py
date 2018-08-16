@@ -41,8 +41,8 @@ from tensorpack.tfutils.sessinit import ChainInit
 
 
 def convert(predictor, df):
-    nd1,nd2,nd3,nd4=next(df().get_data())
-    pred_spec, y_spec, ppgs = predictor(nd1,nd2,nd3,nd4)
+    nd1, nd2, nd3, nd4 = next(df().get_data())
+    pred_spec, y_spec, ppgs = predictor(nd1, nd2, nd3, nd4)
 
     # Denormalizatoin
     pred_spec = denormalize_db(pred_spec, hp.default.max_db, hp.default.min_db)
@@ -57,10 +57,12 @@ def convert(predictor, df):
     y_spec = np.power(y_spec, hp.convert.emphasis_magnitude)
 
     # Spectrogram to waveform
-    audio = np.array(map(lambda spec: spec2wav(spec.T, hp.default.n_fft, hp.default.win_length, hp.default.hop_length,
-                                               hp.default.n_iter), pred_spec))
-    y_audio = np.array(map(lambda spec: spec2wav(spec.T, hp.default.n_fft, hp.default.win_length, hp.default.hop_length,
-                                                 hp.default.n_iter), y_spec))
+    audio = np.array(
+        list(map(lambda spec: spec2wav(spec.T, hp.default.n_fft, hp.default.win_length, hp.default.hop_length,
+                                       hp.default.n_iter), pred_spec)))
+    y_audio = np.array(
+        list(map(lambda spec: spec2wav(spec.T, hp.default.n_fft, hp.default.win_length, hp.default.hop_length,
+                                       hp.default.n_iter), y_spec)))
 
     # Apply inverse pre-emphasis
     audio = inv_preemphasis(audio, coeff=hp.default.preemphasis)
@@ -75,7 +77,7 @@ def convert(predictor, df):
 
 
 def get_eval_input_names():
-    return ['x_ppgs','x_mfccs', 'y_spec', 'y_mel']
+    return ['x_ppgs', 'x_mfccs', 'y_spec', 'y_mel']
 
 
 def get_eval_output_names():
@@ -139,7 +141,7 @@ if __name__ == '__main__':
     hp.set_hparam_yaml(args.case2)
     logdir_train2 = '{}/{}/train2'.format(hp.logdir_path, args.case2)
 
-    print('case2: {}, logdir2: {}'.format( args.case2, logdir_train2))
+    print('case2: {}, logdir2: {}'.format(args.case2, logdir_train2))
 
     s = datetime.datetime.now()
 

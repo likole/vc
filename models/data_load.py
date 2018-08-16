@@ -44,7 +44,7 @@ class Net2DataFlow(DataFlow):
         while True:
             npy_file = random.choice(self.npy_files)
             length = len(np.load(npy_file))
-            while length < ((hp.default.duration * hp.default.sr + 80) // hp.default.hop_length):
+            while length < ((hp.default.duration * hp.default.sr) // hp.default.hop_length)+1:
                 npy_file = random.choice(self.npy_files)
                 length = len(np.load(npy_file))
 

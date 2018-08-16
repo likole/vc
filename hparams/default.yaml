@@ -67,5 +67,5 @@ convert:
 
     # convert
     one_full_wav: False
-    batch_size: 1
+    batch_size: 32
     emphasis_magnitude: 1.2
