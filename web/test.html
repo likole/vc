@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="zh-cmn-Hans">
+<head>
+    <meta charset="utf-8">
+    <title>说话人转换系统Demo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="author" content="likole">
+    <link href="assets/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link href="assets/bootstrap-toastr/toastr.min.css" rel="stylesheet"/>
+    <link href="assets/boostrap-fileinput/css/fileinput.min.css" media="all" rel="stylesheet" type="text/css"/>
+</head>
+<body>
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <h1>请选择音频文件</h1>
+            <input type="file" id="file" name="file" data-allowed-file-extensions='["wav","mp3"]'>
+        </div>
+    </div>
+</div>
+<!-- Modal -->
+<div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" data-backdrop="static">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="myModalLabel">说话人转换Demo</h4>
+            </div>
+            <div class="modal-body">
+                正在转换中,请耐心等待......
+            </div>
+        </div>
+    </div>
+</div>
+<script src="assets/jquery.js"></script>
+<script src="assets/bootstrap/js/bootstrap.min.js"></script>
+<script src="assets/bootstrap-toastr/toastr.min.js"></script>
+<script src="assets/boostrap-fileinput/js/plugins/piexif.min.js"></script>
+<script src="assets/boostrap-fileinput/js/fileinput.min.js"></script>
+<script src="assets/boostrap-fileinput/js/locales/zh.js"></script>
+<script type="text/javascript">
+    $(function () {
+        $("#file").fileinput({
+            language: 'zh',
+            uploadUrl: 'http://127.0.0.1:5000/convert',
+            allowedFileTypes: ['audio'],
+            showPreview:false,
+            showUpload: false,
+            enctype: 'multipart/form-data'
+        });
+
+        $("#btn-submit").click(function () {
+            $("#myModal").modal('show');
+            ajaxFileUpload();
+        });
+
+    })
+</script>
+</body>
+</html>

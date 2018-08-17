@@ -4,7 +4,8 @@ import math
 import librosa
 import requests
 import time
-from flask import Flask, request, send_file
+from flask import Flask, request, send_file, jsonify
+from flask_cors import CORS
 from tensorpack import SaverRestore, PredictConfig, ChainInit, OfflinePredictor
 from werkzeug.utils import secure_filename
 import os
@@ -12,7 +13,7 @@ import numpy as np
 import soundfile as sf
 import tensorflow as tf
 
-from models.data_load import get_mfccs_and_spectrogram, normalize_0_1
+from models.data_load import normalize_0_1
 from models.models import Net2
 from hparams.hparam import hparam as hp
 from utils.audio import denormalize_db, spec2wav, db2amp, inv_preemphasis, preemphasis, amp2db
@@ -106,10 +107,9 @@ def do_service(wav_file):
     filename, _ = os.path.splitext(filename)
 
     # 调整采样率和格式
-    wav, sr = librosa.load(wav_file, mono=True, sr=None)
-    wav = librosa.resample(wav, sr, 16000)
+    wav, _ = librosa.load(wav_file, mono=True, sr=hp.default.sr)
     wav_len = np.size(wav)
-    sf.write(wav_file, wav, 16000, format="wav", subtype="PCM_16")
+    sf.write(os.path.join(basepath, filename + ".wav"), wav, hp.default.sr, format="wav", subtype="PCM_16")
 
     # 获取ppgs
     multipart_form_data = {
@@ -123,12 +123,11 @@ def do_service(wav_file):
         # print(ppgs)
     except:
         # wav=AudioSegment.from_wav(basepath + "/" + filename)
-        return "接口请求失败"
+        return jsonify({"code": 121, "message": "asr接口请求失败"})
 
     # 拼接结果
     audio = []
     for i in range(int(math.ceil(wav_len / (hp.default.duration * hp.default.sr)))):
-        print(i, i * hp.default.duration * hp.default.sr)
         _audio = convert(wav[i * hp.default.duration * hp.default.sr:],
                          ppgs[i * ((hp.default.duration * hp.default.sr) // hp.default.hop_length + 1):])
         audio = audio + _audio[0].tolist()  # _audio[0]
@@ -137,11 +136,11 @@ def do_service(wav_file):
     audio = librosa.util.fix_length(np.array(audio), wav_len)
 
     # 写结果
-    sf.write("uploads/" + filename + "_output.wav", audio, 16000, format="wav", subtype="PCM_16")
-    return send_file("uploads/" + filename + "_output.wav", as_attachment=True)
+    sf.write(os.path.join(os.path.dirname(__file__),"uploads",filename + "_output.wav"), audio, hp.default.sr, format="wav", subtype="PCM_16")
+    return jsonify({"code": 0, "message": "转换成功", "source": filename + ".wav", "target": filename + "_output.wav"})
 
 
-@app.route('/upload', methods=['POST'])
+@app.route('/convert', methods=['POST'])
 def upload():
     f = request.files['file']
     basepath = os.path.dirname(__file__)
@@ -151,8 +150,9 @@ def upload():
 
 
 if __name__ == '__main__':
-    case2 = "20180815"
+    case2 = "20180816"
     hp.set_hparam_yaml(case2)
     logdir2 = '{}/{}/train2'.format(hp.logdir_path, case2)
     init(logdir2)
     app.run(debug=True)
+    CORS(app, supports_credentials=True)
