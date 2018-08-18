@@ -21,12 +21,16 @@ from utils.audio import denormalize_db, spec2wav, db2amp, inv_preemphasis, preem
 
 app = Flask(__name__, static_url_path='')
 predictor = None
+logdir2 = None
 
 
-def init(args, logdir2):
+def init(args=None, is_running=0):
     # 网络
     model = Net2()
-    ckpt2 = '{}/{}'.format(logdir2, args.ckpt) if args.ckpt else tf.train.latest_checkpoint(logdir2)
+    if is_running == 1:
+        ckpt2 = tf.train.latest_checkpoint(logdir2)
+    else:
+        ckpt2 = '{}/{}'.format(logdir2, args.ckpt) if args.ckpt else tf.train.latest_checkpoint(logdir2)
     session_inits = []
     if ckpt2:
         session_inits.append(SaverRestore(ckpt2))
@@ -37,6 +41,8 @@ def init(args, logdir2):
         session_init=ChainInit(session_inits))
     global predictor
     predictor = OfflinePredictor(pred_conf)
+    if is_running == 1:
+        return jsonify({"code": 0, "ckpt": ckpt2})
 
 
 def convert(wav, ppgs):
@@ -163,6 +169,11 @@ def index():
     return app.send_static_file('index.html')
 
 
+@app.route('/reset')
+def reset():
+    return init(is_running=1)
+
+
 def get_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument('case2', type=str, help='experiment case name of train2')
@@ -175,5 +186,5 @@ if __name__ == '__main__':
     args = get_arguments()
     hp.set_hparam_yaml(args.case2)
     logdir2 = '{}/{}/train2'.format(hp.logdir_path, args.case2)
-    init(args, logdir2)
+    init(args)
     app.run(debug=True)
