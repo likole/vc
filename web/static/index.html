@@ -28,7 +28,7 @@
                             <input type="file" id="file-audio" name="file"/>
                         </div>
                     </div>
-                    <p class="help-block">仅支持音频文件。</p>
+                    <p class="help-block">支持文件格式: mp3,wav,ogg</p>
                 </div>
                 <button type="submit" id="btn-submit" class="btn btn-primary btn-block">转换</button>
             </form>
@@ -46,7 +46,7 @@
                 <div class="panel-body" id="target">
                 </div>
                 <div class="panel-footer">
-                    温馨提示:请先远距离试听,避免...
+                    温馨提示:如带耳机,请先远距离试听,避免...
                 </div>
             </div>
         </div>
@@ -90,7 +90,7 @@
 
         $('#file-audio').fileinput({
             language: 'zh',
-            allowedFileTypes: ["audio"],
+            allowedFileExtensions: ['mp3', 'wav', 'ogg'],
             showUpload: false,
             showPreview: true,
             uploadAsync: false
@@ -99,7 +99,7 @@
         $("#btn-submit").click(function () {
             var type = $("#file-audio").val().split(".")[1];
             var flag = false;
-            var fileType = ["mp3", "wav"];
+            var fileType = ["mp3", "wav", "ogg"];
             for (var i = 0; i < fileType.length; i++) {
                 if (type === fileType[i]) flag = true;
             }
@@ -124,7 +124,7 @@
                     $("#file-wrapper").html('<input type="file" id="file-audio" name="file"/>');
                     $('#file-audio').fileinput({
                         language: 'zh',
-                        allowedFileTypes: ["audio"],
+                        allowedFileExtensions: ['mp3', 'wav', 'ogg'],
                         showUpload: false,
                         showPreview: true,
                         uploadAsync: false
