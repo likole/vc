@@ -174,9 +174,15 @@ def reset():
     return init(is_running=1)
 
 
+@app.route('/ckpt')
+def ckpt():
+    return jsonify({"code": 0, "ckpt": '{}/{}'.format(logdir2, args.ckpt) if args.ckpt else tf.train.latest_checkpoint(logdir2)})
+
+
 def get_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument('case2', type=str, help='experiment case name of train2')
+    parser.add_argument('port', type=int, help='port to run service')
     parser.add_argument('-ckpt', help='checkpoint to load models.')
     arguments = parser.parse_args()
     return arguments
@@ -187,4 +193,4 @@ if __name__ == '__main__':
     hp.set_hparam_yaml(args.case2)
     logdir2 = '{}/{}/train2'.format(hp.logdir_path, args.case2)
     init(args)
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=args.port, debug=True)

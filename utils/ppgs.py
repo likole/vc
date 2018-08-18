@@ -10,7 +10,7 @@ import scipy.io.wavfile
 import shutil
 from pydub import AudioSegment
 
-basepath = '../datasets/S0252/S0252_mic'
+basepath = '../datasets/wang'
 
 
 def get_int16(input_sound):
@@ -87,4 +87,4 @@ def check_ppgs():
 
 
 if __name__ == '__main__':
-    check_ppgs()
+    get_ppgs()
