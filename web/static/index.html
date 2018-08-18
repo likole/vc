@@ -23,8 +23,10 @@
             <form role="form" onsubmit="return false;">
                 <div class="form-group">
                     <label for="file-audio">请选择音频文件</label>
-                    <div class="file-loading">
-                        <input type="file" id="file-audio" name="file"/>
+                    <div id="file-wrapper">
+                        <div class="file-loading">
+                            <input type="file" id="file-audio" name="file"/>
+                        </div>
                     </div>
                     <p class="help-block">仅支持音频文件。</p>
                 </div>
@@ -83,9 +85,7 @@
             "hideMethod": "fadeOut"
         };
 
-        var $file = $('#file-audio');
-
-        $file.fileinput({
+        $('#file-audio').fileinput({
             language: 'zh',
             allowedFileTypes: ["audio"],
             showUpload: false,
@@ -103,7 +103,14 @@
                 dataType: 'json',
                 success: function (data, status) {
                     $("#myModal").modal('hide');
-                    $file.fileinput('clear');
+                    $("#file-wrapper").html('<input type="file" id="file-audio" name="file"/>');
+                    $('#file-audio').fileinput({
+                        language: 'zh',
+                        allowedFileTypes: ["audio"],
+                        showUpload: false,
+                        showPreview: true,
+                        uploadAsync: false
+                    });
                     if (data.code === 0) {
                         console.log(data);
                         $("#result").show();
@@ -116,12 +123,50 @@
                 },
                 error: function (data, status, e) {
                     $("#myModal").modal('hide');
+                    $("#file-wrapper").html('<input type="file" id="file-audio" name="file"/>');
+                    $('#file-audio').fileinput({
+                        language: 'zh',
+                        allowedFileTypes: ["audio"],
+                        showUpload: false,
+                        showPreview: true,
+                        uploadAsync: false
+                    });
                     toastr["error"](e, "网络请求失败");
                 }
             })
         });
 
     })
+</script>
+<script type="text/javascript">
+    /* 鼠标点击特效 */
+    var a_idx = 0;
+    jQuery(document).ready(function ($) {
+        $("body").click(function (e) {
+            var a = new Array("富强", "民主", "文明", "和谐", "自由", "平等", "公正", "法治", "爱国", "敬业", "诚信", "友善");
+            var $i = $("<span/>").text(a[a_idx]);
+            a_idx = (a_idx + 1) % a.length;
+            var x = e.pageX,
+                y = e.pageY;
+            $i.css({
+                "z-index": 999999999999999999999999999999999999999999999999999999999999999999999,
+                "top": y - 20,
+                "left": x,
+                "position": "absolute",
+                "font-weight": "bold",
+                "color": "#ff6651"
+            });
+            $("body").append($i);
+            $i.animate({
+                    "top": y - 180,
+                    "opacity": 0
+                },
+                1500,
+                function () {
+                    $i.remove();
+                });
+        });
+    });
 </script>
 </body>
 </html>

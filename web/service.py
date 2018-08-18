@@ -1,10 +1,11 @@
 # coding:utf-8
+import argparse
 import json
 import math
 import librosa
 import requests
 import time
-from flask import Flask, request, send_file, jsonify
+from flask import Flask, request, jsonify
 from tensorpack import SaverRestore, PredictConfig, ChainInit, OfflinePredictor
 from werkzeug.utils import secure_filename
 import os
@@ -21,10 +22,10 @@ app = Flask(__name__, static_url_path='')
 predictor = None
 
 
-def init(logdir2):
+def init(args, logdir2):
     # 网络
     model = Net2()
-    ckpt2 = tf.train.latest_checkpoint(logdir2)
+    ckpt2 = '{}/{}'.format(logdir2, args.ckpt) if args.ckpt else tf.train.latest_checkpoint(logdir2)
     session_inits = []
     if ckpt2:
         session_inits.append(SaverRestore(ckpt2))
@@ -151,9 +152,17 @@ def index():
     return app.send_static_file('index.html')
 
 
+def get_arguments():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('case2', type=str, help='experiment case name of train2')
+    parser.add_argument('-ckpt', help='checkpoint to load models.')
+    arguments = parser.parse_args()
+    return arguments
+
+
 if __name__ == '__main__':
-    case2 = "20180816"
-    hp.set_hparam_yaml(case2)
-    logdir2 = '{}/{}/train2'.format(hp.logdir_path, case2)
-    init(logdir2)
+    args = get_arguments()
+    hp.set_hparam_yaml(args.case2)
+    logdir2 = '{}/{}/train2'.format(hp.logdir_path, args.case2)
+    init(args, logdir2)
     app.run(debug=True)
