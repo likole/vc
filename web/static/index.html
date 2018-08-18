@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-cmn-Hans">
+<head>
+    <meta charset="utf-8">
+    <title>说话人转换Demo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="author" content="likole">
+    <link href="assets/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link href="assets/bootstrap-toastr/toastr.min.css" rel="stylesheet"/>
+    <link href="assets/boostrap-fileinput/css/fileinput.min.css" rel="stylesheet"/>
+    <style type="text/css">
+        html, body {
+            margin: 0;
+            padding: 0;
+        }
+    </style>
+</head>
+<body>
+<section class="container">
+    <h1>说话人转换Demo</h1>
+    <div class="row">
+        <div class="col-md-6" style="margin-top: 20px">
+            <form role="form" onsubmit="return false;">
+                <div class="form-group">
+                    <label for="file-audio">请选择音频文件</label>
+                    <div class="file-loading">
+                        <input type="file" id="file-audio" name="file"/>
+                    </div>
+                    <p class="help-block">仅支持音频文件。</p>
+                </div>
+                <button type="submit" id="btn-submit" class="btn btn-primary btn-block">转换</button>
+            </form>
+        </div>
+        <div class="col-md-6" id="result" style="margin-top: 20px;display: none">
+            <div class="panel panel-default">
+                <div class="panel-heading">原语音</div>
+                <div class="panel-body" id="source">
+                </div>
+            </div>
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title">转换后语音</h3>
+                </div>
+                <div class="panel-body" id="target">
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+<!-- Modal -->
+<div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" data-backdrop="static">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="myModalLabel">说话人转换Demo</h4>
+            </div>
+            <div class="modal-body">
+                正在转换中,请耐心等待......
+            </div>
+        </div>
+    </div>
+</div>
+<script src="assets/jquery-1.11.1.min.js"></script>
+<script src="assets/bootstrap/js/bootstrap.min.js"></script>
+<script src="assets/bootstrap-toastr/toastr.min.js"></script>
+<script src="assets/boostrap-fileinput/js/fileinput.min.js"></script>
+<script src="assets/boostrap-fileinput/js/locales/zh.js"></script>
+<script src="assets/ajaxfileupload.js"></script>
+<script type="text/javascript">
+    $(function () {
+        toastr.options = {
+            "closeButton": false,
+            "debug": false,
+            "positionClass": "toast-top-center",
+            "onclick": null,
+            "showDuration": "1000",
+            "hideDuration": "1000",
+            "timeOut": "3000",
+            "extendedTimeOut": "1000",
+            "showEasing": "swing",
+            "hideEasing": "linear",
+            "showMethod": "fadeIn",
+            "hideMethod": "fadeOut"
+        };
+
+        var $file = $('#file-audio');
+
+        $file.fileinput({
+            language: 'zh',
+            allowedFileTypes: ["audio"],
+            showUpload: false,
+            showPreview: true,
+            uploadAsync: false
+        });
+
+        $("#btn-submit").click(function () {
+            $("#myModal").modal('show');
+            $.ajaxFileUpload({
+                type: "POST",
+                url: "convert",
+                secureuri: false,
+                fileElementId: "file-audio",
+                dataType: 'json',
+                success: function (data, status) {
+                    $("#myModal").modal('hide');
+                    $file.fileinput('clear');
+                    if (data.code === 0) {
+                        console.log(data);
+                        $("#result").show();
+                        $("#source").html("<audio src='uploads/" + data.source + "' controls='controls'></audio>");
+                        $("#target").html("<audio src='uploads/" + data.target + "' controls='controls'></audio>")
+                        toastr["success"]("转换成功", "转换成功")
+                    } else {
+                        toastr["error"](data.message, "转换失败");
+                    }
+                },
+                error: function (data, status, e) {
+                    $("#myModal").modal('hide');
+                    toastr["error"](e, "网络请求失败");
+                }
+            })
+        });
+
+    })
+</script>
+</body>
+</html>

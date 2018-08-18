@@ -5,7 +5,6 @@ import librosa
 import requests
 import time
 from flask import Flask, request, send_file, jsonify
-from flask_cors import CORS
 from tensorpack import SaverRestore, PredictConfig, ChainInit, OfflinePredictor
 from werkzeug.utils import secure_filename
 import os
@@ -18,7 +17,7 @@ from models.models import Net2
 from hparams.hparam import hparam as hp
 from utils.audio import denormalize_db, spec2wav, db2amp, inv_preemphasis, preemphasis, amp2db
 
-app = Flask(__name__)
+app = Flask(__name__, static_url_path='')
 predictor = None
 
 
@@ -119,10 +118,7 @@ def do_service(wav_file):
         response = requests.post('http://202.207.12.156:9000/asr', {'ali': 'true'}, files=multipart_form_data)
         content = json.loads(response.text)
         ppgs = np.array(json.loads(content['ali']))
-        np.save(basepath + "/" + filename + ".npy", ppgs)
-        # print(ppgs)
     except:
-        # wav=AudioSegment.from_wav(basepath + "/" + filename)
         return jsonify({"code": 121, "message": "asr接口请求失败"})
 
     # 拼接结果
@@ -136,7 +132,8 @@ def do_service(wav_file):
     audio = librosa.util.fix_length(np.array(audio), wav_len)
 
     # 写结果
-    sf.write(os.path.join(os.path.dirname(__file__),"uploads",filename + "_output.wav"), audio, hp.default.sr, format="wav", subtype="PCM_16")
+    sf.write(os.path.join(os.path.dirname(__file__), "static/uploads", filename + "_output.wav"), audio, hp.default.sr,
+             format="wav", subtype="PCM_16")
     return jsonify({"code": 0, "message": "转换成功", "source": filename + ".wav", "target": filename + "_output.wav"})
 
 
@@ -144,9 +141,14 @@ def do_service(wav_file):
 def upload():
     f = request.files['file']
     basepath = os.path.dirname(__file__)
-    upload_path = os.path.join(basepath, 'uploads', str(int(time.time() * 1000)) + secure_filename(f.filename))
+    upload_path = os.path.join(basepath, 'static/uploads', str(int(time.time() * 1000)) + secure_filename(f.filename))
     f.save(upload_path)
     return do_service(upload_path)
+
+
+@app.route('/')
+def index():
+    return app.send_static_file('index.html')
 
 
 if __name__ == '__main__':
@@ -155,4 +157,3 @@ if __name__ == '__main__':
     logdir2 = '{}/{}/train2'.format(hp.logdir_path, case2)
     init(logdir2)
     app.run(debug=True)
-    CORS(app, supports_credentials=True)
