@@ -97,6 +97,21 @@
         });
 
         $("#btn-submit").click(function () {
+            var type = $("#file-audio").val().split(".")[1];
+            var flag = false;
+            var fileType = ["mp3", "wav"];
+            for (var i = 0; i < fileType.length; i++) {
+                if (type === fileType[i]) flag = true;
+            }
+            if (flag) {
+                ajaxFileUpload();
+            } else {
+                toastr["warning"]("文件类型错误,请重新选择", "上传错误");
+                return false;
+            }
+        });
+
+        ajaxFileUpload = function () {
             $("#myModal").modal('show');
             $.ajaxFileUpload({
                 type: "POST",
@@ -115,7 +130,6 @@
                         uploadAsync: false
                     });
                     if (data.code === 0) {
-                        console.log(data);
                         $("#result").show();
                         $("#source").html("<audio src='uploads/" + data.source + "' controls='controls'></audio>");
                         $("#target").html("<audio src='uploads/" + data.target + "' controls='controls'></audio>")
@@ -137,7 +151,7 @@
                     toastr["error"](e, "网络请求失败");
                 }
             })
-        });
+        }
 
     })
 </script>
