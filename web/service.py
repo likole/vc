@@ -6,6 +6,7 @@ import librosa
 import requests
 import time
 from flask import Flask, request, jsonify
+from pydub import AudioSegment
 from tensorpack import SaverRestore, PredictConfig, ChainInit, OfflinePredictor
 from werkzeug.utils import secure_filename
 import os
@@ -111,6 +112,10 @@ def do_service(wav_file):
     wav_len = np.size(wav)
     sf.write(os.path.join(basepath, filename + ".wav"), wav, hp.default.sr, format="wav", subtype="PCM_16")
 
+    # 读取原始分贝
+    sound = AudioSegment.from_file(wav_file, "wav")
+    target_dBFS = sound.dBFS
+
     # 获取ppgs
     multipart_form_data = {
         'wave': ('wav.wav', open(wav_file, "rb"))
@@ -133,8 +138,14 @@ def do_service(wav_file):
     audio = librosa.util.fix_length(np.array(audio), wav_len)
 
     # 写结果
-    sf.write(os.path.join(os.path.dirname(__file__), "static/uploads", filename + "_output.wav"), audio, hp.default.sr,
-             format="wav", subtype="PCM_16")
+    target_path = os.path.join(os.path.dirname(__file__), "static/uploads", filename + "_output.wav")
+    sf.write(target_path, audio, hp.default.sr, format="wav", subtype="PCM_16")
+
+    # 调整分贝
+    sound = AudioSegment.from_file(target_path, "wav")
+    change_dBFS = target_dBFS - sound.dBFS
+    sound = sound.apply_gain(change_dBFS)
+    sound.export(target_path, 'wav')
     return jsonify({"code": 0, "message": "转换成功", "source": filename + ".wav", "target": filename + "_output.wav"})
 
 
