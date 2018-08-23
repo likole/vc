@@ -131,6 +131,7 @@ def do_service(wav_file):
         response = requests.post('http://202.207.12.156:9000/asr', {'ali': 'true'}, files=multipart_form_data)
         content = json.loads(response.text)
         ppgs = np.array(json.loads(content['ali']))
+        txt=content['txt']
     except:
         return jsonify({"code": 121, "message": "asr接口请求失败"})
 
@@ -161,7 +162,7 @@ def do_service(wav_file):
     change_dBFS = target_dBFS - sound.dBFS
     sound = sound.apply_gain(change_dBFS)
     sound.export(target_path, 'wav')
-    return jsonify({"code": 0, "message": "转换成功", "source": filename + ".wav", "target": filename + "_output.wav"})
+    return jsonify({"code": 0, "message": "转换成功", "source": filename + ".wav", "target": filename + "_output.wav","txt":txt})
 
 
 @app.route('/convert', methods=['POST'])
