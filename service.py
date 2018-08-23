@@ -25,11 +25,14 @@ predictor = None
 logdir2 = None
 
 
-def init(args=None, is_running=0):
+def init(args=None, is_running=0, pt=None):
     # 网络
     model = Net2()
     if is_running == 1:
-        ckpt2 = tf.train.latest_checkpoint(logdir2)
+        if pt == None:
+            ckpt2 = tf.train.latest_checkpoint(logdir2)
+        else:
+            ckpt2 = '{}/{}'.format(logdir2, pt)
     else:
         ckpt2 = '{}/{}'.format(logdir2, args.ckpt) if args.ckpt else tf.train.latest_checkpoint(logdir2)
     session_inits = []
@@ -131,7 +134,7 @@ def do_service(wav_file):
         response = requests.post('http://202.207.12.156:9000/asr', {'ali': 'true'}, files=multipart_form_data)
         content = json.loads(response.text)
         ppgs = np.array(json.loads(content['ali']))
-        txt=content['txt']
+        txt = content['txt']
     except:
         return jsonify({"code": 121, "message": "asr接口请求失败"})
 
@@ -162,7 +165,13 @@ def do_service(wav_file):
     change_dBFS = target_dBFS - sound.dBFS
     sound = sound.apply_gain(change_dBFS)
     sound.export(target_path, 'wav')
-    return jsonify({"code": 0, "message": "转换成功", "source": filename + ".wav", "target": filename + "_output.wav","txt":txt})
+    return jsonify(
+        {"code": 0, "message": "转换成功", "source": filename + ".wav", "target": filename + "_output.wav", "txt": txt})
+
+
+@app.route('/')
+def index():
+    return app.send_static_file('index.html')
 
 
 @app.route('/convert', methods=['POST'])
@@ -174,14 +183,11 @@ def upload():
     return do_service(upload_path)
 
 
-@app.route('/')
-def index():
-    return app.send_static_file('index.html')
-
-
 @app.route('/reset')
 def reset():
-    return init(is_running=1)
+    pt = None
+    pt = request.args['ckpt']
+    return init(pt, is_running=1)
 
 
 @app.route('/ckpt')
