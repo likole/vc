@@ -1,5 +1,6 @@
 # coding:utf-8
 import argparse
+import glob
 import json
 import math
 import librosa
@@ -134,11 +135,19 @@ def do_service(wav_file):
         return jsonify({"code": 121, "message": "asr接口请求失败"})
 
     # 拼接结果
+    times = int(math.ceil(wav_len / (hp.default.duration * hp.default.sr)))
     audio = []
-    for i in range(int(math.ceil(wav_len / (hp.default.duration * hp.default.sr)))):
+    for i in range(times):
         _audio = convert(wav[i * hp.default.duration * hp.default.sr:],
                          ppgs[i * ((hp.default.duration * hp.default.sr) // hp.default.hop_length + 1):])
         audio = audio + _audio[0].tolist()  # _audio[0]
+
+    # times = int(math.ceil(wav_len / (2 * hp.default.sr)))
+    # audio = []
+    # for i in range(times):
+    #     _audio = convert(wav[i * 2 * hp.default.sr:],
+    #                      ppgs[i * ((2 * hp.default.sr) // hp.default.hop_length + 1):])
+    #     audio = audio + _audio[0].tolist()[:2 * hp.default.sr]  # _audio[0]
 
     # 修复长度
     audio = librosa.util.fix_length(np.array(audio), wav_len)
@@ -176,12 +185,21 @@ def reset():
 
 @app.route('/ckpt')
 def ckpt():
-    return jsonify({"code": 0, "ckpt": '{}/{}'.format(logdir2, args.ckpt) if args.ckpt else tf.train.latest_checkpoint(logdir2)})
+    return jsonify(
+        {"code": 0, "ckpt": '{}/{}'.format(logdir2, args.ckpt) if args.ckpt else tf.train.latest_checkpoint(logdir2)})
+
+
+@app.route('/ckpts')
+def ckpts():
+    models = sorted(glob.glob(logdir2 + "/" + "model-*.index"), key=os.path.getmtime, reverse=True)
+    models = list(map(lambda x: os.path.splitext(os.path.split(x)[1])[0], models))
+    return jsonify({"code": 0, "list": models})
 
 
 def get_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument('case2', type=str, help='experiment case name of train2')
+    parser.add_argument('ip', type=str, help='to generate qrcode')
     parser.add_argument('port', type=int, help='port to run service')
     parser.add_argument('-ckpt', help='checkpoint to load models.')
     arguments = parser.parse_args()
@@ -192,5 +210,31 @@ if __name__ == '__main__':
     args = get_arguments()
     hp.set_hparam_yaml(args.case2)
     logdir2 = '{}/{}/train2'.format(hp.logdir_path, args.case2)
+    import qrcode
+
+    # 生成下载二维码
+    qr = qrcode.QRCode(
+        version=7,
+        error_correction=qrcode.constants.ERROR_CORRECT_L,
+        box_size=10,
+        border=4
+    )
+    qr.add_data("http://" + args.ip + ":" + str(args.port) + "/vc_demo.apk")
+    qr.make(fit=True)
+    img = qr.make_image()
+    img.save("static/download.png")
+
+    # 生成配置二维码
+    qr = qrcode.QRCode(
+        version=7,
+        error_correction=qrcode.constants.ERROR_CORRECT_L,
+        box_size=10,
+        border=4
+    )
+    qr.add_data("http://" + args.ip + ":" + str(args.port) + "/")
+    qr.make(fit=True)
+    img = qr.make_image()
+    img.save("static/address.png")
+
     init(args)
     app.run(host='0.0.0.0', port=args.port, debug=True)
