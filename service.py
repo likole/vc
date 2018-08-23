@@ -23,13 +23,15 @@ from utils.audio import denormalize_db, spec2wav, db2amp, inv_preemphasis, preem
 app = Flask(__name__, static_url_path='')
 predictor = None
 logdir2 = None
+ckpt2 = None
 
 
 def init(args=None, is_running=0, pt=None):
+    global ckpt2
     # 网络
     model = Net2()
     if is_running == 1:
-        if pt == None:
+        if pt == "":
             ckpt2 = tf.train.latest_checkpoint(logdir2)
         else:
             ckpt2 = '{}/{}'.format(logdir2, pt)
@@ -185,19 +187,18 @@ def upload():
 
 @app.route('/reset')
 def reset():
-    pt = None
     pt = request.args['ckpt']
-    return init(pt, is_running=1)
+    return init(pt=pt, is_running=1)
 
 
 @app.route('/ckpt')
-def ckpt():
+def get_ckpt():
     return jsonify(
-        {"code": 0, "ckpt": '{}/{}'.format(logdir2, args.ckpt) if args.ckpt else tf.train.latest_checkpoint(logdir2)})
+        {"code": 0, "ckpt": ckpt2})
 
 
 @app.route('/ckpts')
-def ckpts():
+def get_ckpts():
     models = sorted(glob.glob(logdir2 + "/" + "model-*.index"), key=os.path.getmtime, reverse=True)
     models = list(map(lambda x: os.path.splitext(os.path.split(x)[1])[0], models))
     return jsonify({"code": 0, "list": models})
